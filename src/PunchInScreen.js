@@ -21,9 +21,9 @@ const theme = {
     surface: '#FFFFFF',
     error: '#D32F2F',
     success: '#2E7D32',
-    punchIn: '#4CAF50', // Green for punch in
-    punchOut: '#F44336', // Red for punch out
-    disabled: '#B0BEC5', // Grey for disabled buttons
+    punchIn: '#4CAF50',
+    punchOut: '#F44336',
+    disabled: '#B0BEC5',
   },
   fonts: configureFonts({
     default: {
@@ -204,7 +204,7 @@ const PunchInScreen = () => {
   const [error, setError] = useState('');
   const [timer, setTimer] = useState(0);
   const [punchInTime, setPunchInTime] = useState(null);
-  const [userData, setUserData] = useState(null); // State to store user data
+  const [userData, setUserData] = useState(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const getGreeting = () => {
@@ -253,7 +253,6 @@ const PunchInScreen = () => {
         console.log('User data response:', response.data);
         if (response.data.status) {
           setUserData(response.data.data);
-          // Store email in AsyncStorage for submitAttendance
           await AsyncStorage.setItem('user_email', response.data.data.email);
         } else {
           showToast('error', 'Error', 'Failed to fetch user data.');
@@ -361,143 +360,168 @@ const PunchInScreen = () => {
     });
   };
 
-  const takePhoto = async (callback) => {
-  if (!hasCameraPermission) {
-    showToast('error', 'Permission Denied', 'Camera permission is required.');
-    return;
-  }
-  if (!camera.current || !isCameraReady) {
-    showToast('error', 'Camera Error', 'Camera is not ready.');
-    return;
-  }
-  try {
-    const photo = await camera.current.takePhoto({
-      flash: 'off',
-      enableShutterSound: true,
-      quality: 0.5, // Reduce quality to match API expectations and reduce payload size
-    });
-    console.log('Photo captured:', photo);
-    const uri = `file://${photo.path}`;
-    setImageUri(uri);
-
-    // Fetch the photo file as a blob
-    const response = await fetch(uri);
-    const blob = await response.blob();
-
-    // Convert blob to base64
-    const base64 = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = (error) => reject(error);
-      reader.readAsDataURL(blob);
-    });
-
-    console.log('Base64 generated:', base64.substring(0, 30) + '...'); // Log first 30 chars for verification
-    setImageBase64(base64); // Update state for UI
-    callback(base64); // Pass base64 to callback
-  } catch (error) {
-    console.error('Error capturing or converting photo:', error);
-    showToast('error', 'Error', 'Failed to capture or convert photo.');
-  }
-};
-
-const getLocation = async (callback, base64) => {
-  if (hasLocationPermission) {
-    Geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        const newLocation = { latitude, longitude };
-        setLocation(newLocation);
-        const address = await getAddressFromCoordinates(latitude, longitude);
-        setLocationName(address);
-        console.log('Location and address:', newLocation, address);
-        callback(base64, newLocation, address); // Pass base64, location, and address
-      },
-      (error) => {
-        console.warn('Geolocation error:', error);
-        showToast('error', 'Error', 'Failed to get location.');
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
-    );
-  } else {
-    showToast('error', 'Permission Denied', 'Location permission is required.');
-  }
-};
-
-const submitAttendance = async (flag, base64, location, locationName) => {
-  console.log('submitAttendance called with flag:', flag, 'base64:', !!base64, 'location:', !!location, 'locationName:', !!locationName);
-  if (!base64 || !location || !locationName) {
-    console.log('Missing base64, location, or locationName');
-    showToast('error', 'Missing Data', 'Please capture an image and allow location access.');
-    return;
-  }
-  setIsLoading(true);
-  setError('');
-  try {
-    const email = await AsyncStorage.getItem('user_email');
-    console.log('Retrieved email:', email);
-    const currentTime = moment().format('HH:mm:ss');
-    const currentDate = moment().format('YYYY-MM-DD');
-    const data = {
-      email,
-      date: currentDate,
-      flag,
-      ...(flag === 0 && {
-        punch_in_time: currentTime,
-        punch_in_location: locationName,
-        punch_in_image: base64,
-      }),
-      ...(flag === 1 && {
-        punch_out_time: currentTime,
-        punch_out_location: locationName,
-        punch_out_image: base64,
-      }),
-    };
-    console.log('Submitting attendance to URL:', api.defaults.baseURL + '/attendance/', 'with data:', data);
-    const response = await api.post('/attendance/', data);
-    console.log('Submit attendance response:', response.data);
-    if (response.data.status) {
-      showToast('success', 'Success', response.data.message);
-      if (flag === 0) {
-        setHasPunchedIn(true);
-        const punchInDateTime = moment().valueOf();
-        setPunchInTime(punchInDateTime);
-        startTimer(punchInDateTime);
-        await AsyncStorage.setItem('punchInTime', punchInDateTime.toString());
-      } else {
-        setHasPunchedIn(false);
-        setPunchInTime(null);
-        setTimer(0);
-        await AsyncStorage.removeItem('punchInTime');
-      }
-      setImageUri(null);
-      setImageBase64(null);
-      setLocation(null);
-      setLocationName('');
-    } else {
-      showToast('error', 'Error', response.data.message || 'Failed to submit attendance.');
+  const takePhoto = async () => {
+    if (!hasCameraPermission) {
+      showToast('error', 'Permission Denied', 'Camera permission is required.');
+      return null;
     }
-  } catch (err) {
-    console.error('Submit attendance error:', {
-      message: err.message,
-      status: err.response?.status,
-      data: err.response?.data,
-    });
-    showToast('error', 'Error', err.response?.data?.message || 'Failed to submit attendance.');
-  } finally {
-    setIsLoading(false);
-  }
-};
+    if (!camera.current || !isCameraReady) {
+      showToast('error', 'Camera Error', 'Camera is not ready.');
+      return null;
+    }
+    try {
+      const photo = await camera.current.takePhoto({
+        flash: 'off',
+        enableShutterSound: true,
+        quality: 0.5,
+      });
+      console.log('Photo captured:', photo);
+      const uri = `file://${photo.path}`;
+      setImageUri(uri);
 
-const handlePunchIn = () => {
-  takePhoto((base64) => getLocation((base64, location, locationName) => submitAttendance(0, base64, location, locationName)));
-};
+      const response = await fetch(uri);
+      const blob = await response.blob();
 
-const handlePunchOut = () => {
-  takePhoto((base64) => getLocation((base64, location, locationName) => submitAttendance(1, base64, location, locationName)));
-};
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = (error) => reject(error);
+        reader.readAsDataURL(blob);
+      });
 
+      console.log('Base64 generated:', base64.substring(0, 30) + '...');
+      setImageBase64(base64);
+      return base64;
+    } catch (error) {
+      console.error('Error capturing or converting photo:', error);
+      showToast('error', 'Error', 'Failed to capture or convert photo.');
+      return null;
+    }
+  };
 
+  const getLocation = async () => {
+    if (!hasLocationPermission) {
+      showToast('error', 'Permission Denied', 'Location permission is required.');
+      return null;
+    }
+    try {
+      const position = await new Promise((resolve, reject) => {
+        Geolocation.getCurrentPosition(
+          (pos) => resolve(pos),
+          (error) => reject(error),
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+        );
+      });
+      const { latitude, longitude } = position.coords;
+      const newLocation = { latitude, longitude };
+      setLocation(newLocation);
+      const address = await getAddressFromCoordinates(latitude, longitude);
+      setLocationName(address);
+      console.log('Location and address:', newLocation, address);
+      return { location: newLocation, address };
+    } catch (error) {
+      console.warn('Geolocation error:', error);
+      showToast('error', 'Error', 'Failed to get location.');
+      return null;
+    }
+  };
+
+  const submitAttendance = async (flag, base64, location, locationName) => {
+    console.log('submitAttendance called with flag:', flag, 'base64:', !!base64, 'location:', !!location, 'locationName:', !!locationName);
+    if (!base64 || !location || !locationName) {
+      console.log('Missing base64, location, or locationName');
+      showToast('error', 'Missing Data', 'Please capture an image and allow location access.');
+      return;
+    }
+    setIsLoading(true);
+    setError('');
+    try {
+      const email = await AsyncStorage.getItem('user_email');
+      console.log('Retrieved email:', email);
+      const currentTime = moment().format('HH:mm:ss');
+      const currentDate = moment().format('YYYY-MM-DD');
+      const data = {
+        email,
+        date: currentDate,
+        flag,
+        ...(flag === 0 && {
+          punch_in_time: currentTime,
+          punch_in_location: locationName,
+          punch_in_image: base64,
+        }),
+        ...(flag === 1 && {
+          punch_out_time: currentTime,
+          punch_out_location: locationName,
+          punch_out_image: base64,
+        }),
+      };
+      console.log('Submitting attendance to URL:', api.defaults.baseURL + '/attendance/', 'with data:', data);
+      const response = await api.post('/attendance/', data);
+      console.log('Submit attendance response:', response.data);
+      if (response.data.status) {
+        showToast('success', 'Success', response.data.message);
+        if (flag === 0) {
+          setHasPunchedIn(true);
+          const punchInDateTime = moment().valueOf();
+          setPunchInTime(punchInDateTime);
+          startTimer(punchInDateTime);
+          await AsyncStorage.setItem('punchInTime', punchInDateTime.toString());
+        } else {
+          setHasPunchedIn(false);
+          setPunchInTime(null);
+          setTimer(0);
+          await AsyncStorage.removeItem('punchInTime');
+        }
+        setImageUri(null);
+        setImageBase64(null);
+        setLocation(null);
+        setLocationName('');
+      } else {
+        showToast('error', 'Error', response.data.message || 'Failed to submit attendance.');
+      }
+    } catch (err) {
+      console.error('Submit attendance error:', {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data,
+      });
+      showToast('error', 'Error', err.response?.data?.message || 'Failed to submit attendance.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePunchIn = async () => {
+    setIsLoading(true);
+    const base64 = await takePhoto();
+    if (!base64) {
+      setIsLoading(false);
+      return;
+    }
+    const locationData = await getLocation();
+    if (!locationData) {
+      setIsLoading(false);
+      return;
+    }
+    const { location, address } = locationData;
+    await submitAttendance(0, base64, location, address);
+  };
+
+  const handlePunchOut = async () => {
+    setIsLoading(true);
+    const base64 = await takePhoto();
+    if (!base64) {
+      setIsLoading(false);
+      return;
+    }
+    const locationData = await getLocation();
+    if (!locationData) {
+      setIsLoading(false);
+      return;
+    }
+    const { location, address } = locationData;
+    await submitAttendance(1, base64, location, address);
+  };
 
   if (hasCameraPermission === null || hasLocationPermission === null || userData === null) {
     return <Text>Loading...</Text>;
@@ -529,14 +553,6 @@ const handlePunchOut = () => {
               <Text style={styles.employeeId}>{userData.employee_id}</Text>
             </View>
           </View>
-          {/* <View style={styles.statusCard}>
-            <Text style={styles.statusText}>
-              Punch In: 
-            </Text>
-            <Text style={styles.statusText}>
-              Punch Out:
-            </Text>
-          </View> */}
           <Text style={styles.timerText}>
             {hasPunchedIn ? 'Punched In' : 'Punched Out'}: {formatTime(timer)}
           </Text>
@@ -563,7 +579,6 @@ const handlePunchOut = () => {
             <Button
               mode="contained"
               onPress={handlePunchIn}
-              
               style={[styles.button, styles.punchInButton, hasPunchedIn && styles.disabledButton]}
               labelStyle={styles.buttonLabel}
               loading={isLoading && !hasPunchedIn}
@@ -573,7 +588,6 @@ const handlePunchOut = () => {
             <Button
               mode="contained"
               onPress={handlePunchOut}
-             
               style={[styles.button, styles.punchOutButton, !hasPunchedIn && styles.disabledButton]}
               labelStyle={styles.buttonLabel}
               loading={isLoading && hasPunchedIn}
@@ -587,4 +601,4 @@ const handlePunchOut = () => {
   );
 };
 
-export default PunchInScreen; 
+export default PunchInScreen;
