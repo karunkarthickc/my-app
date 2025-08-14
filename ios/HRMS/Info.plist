@@ -25,6 +25,12 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>
+	<key>NSCameraUsageDescription</key>
+	<!-- newly added -->
+<string>We need access to your camera to capture punch-in images.</string>
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>We need your location to record your punch-in position.</string>
+<!-- newly added -->
 	<dict>
 	  <!-- Do not change NSAllowsArbitraryLoads to true, or you will risk app rejection! -->
 		<key>NSAllowsArbitraryLoads</key>

@@ -10,9 +10,30 @@
     "test": "jest"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "@react-native/new-app-screen": "0.80.1",
+    "@react-navigation/native": "^7.1.17",
+    "@react-navigation/native-stack": "^7.3.25",
+    "@react-navigation/stack": "^7.4.7",
+    "axios": "^1.11.0",
+    "lucide-react-native": "^0.539.0",
+    "moment": "^2.30.1",
     "react": "19.1.0",
     "react-native": "0.80.1",
-    "@react-native/new-app-screen": "0.80.1"
+    "react-native-config": "^1.5.6",
+    "react-native-geolocation-service": "^5.3.1",
+    "react-native-image-picker": "^8.2.1",
+    "react-native-linear-gradient": "^2.8.3",
+    "react-native-paper": "^5.14.5",
+    "react-native-reanimated": "^4.0.2",
+    "react-native-safe-area-context": "^5.6.0",
+    "react-native-screens": "^4.13.1",
+    "react-native-toast-message": "^2.3.3",
+    "react-native-vector-icons": "^10.3.0",
+    "react-native-vision-camera": "^4.7.0",
+    "react-native-vision-camera-face-detector": "^1.8.8",
+    "react-native-worklets": "^0.4.1",
+    "react-native-worklets-core": "^1.6.2"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
