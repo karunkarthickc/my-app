@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Image, PermissionsAndroid, Platform, Text, StyleSheet, Animated } from 'react-native';
+import { View, Image, PermissionsAndroid, Platform, Text, StyleSheet, Animated, ActivityIndicator, Modal } from 'react-native';
 import { Button, HelperText, DefaultTheme, configureFonts } from 'react-native-paper';
 import { Camera, useCameraDevice } from 'react-native-vision-camera';
 import Geolocation from 'react-native-geolocation-service';
@@ -9,21 +9,21 @@ import api from './api';
 import moment from 'moment';
 import axios from 'axios';
 
-// Theme and styles remain unchanged
+// Theme (unchanged)
 const theme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    primary: '#1B263B',
-    accent: '#FFFFFF',
-    background: '#F8FAFC',
-    text: '#1B263B',
-    surface: '#FFFFFF',
-    error: '#D32F2F',
-    success: '#2E7D32',
-    punchIn: '#4CAF50',
-    punchOut: '#F44336',
-    disabled: '#B0BEC5',
+    primary: '#000000', // Black
+    accent: '#FFFFFF', // White
+    background: '#F5F5F5', // Light gray
+    text: '#FFFFFF', // White
+    surface: '#E0E0E0', // Light gray
+    error: '#B00020', // Red for errors
+    success: '#4CAF50', // Green for success
+    punchIn: '#333333', // Dark gray for punch in
+    punchOut: '#333333', // Medium gray for punch out
+    disabled: '#B0B0B0', // Light gray for disabled
   },
   fonts: configureFonts({
     default: {
@@ -35,10 +35,11 @@ const theme = {
   }),
 };
 
+// Styles (updated to include loader styles)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.background, // Light gray
     padding: 20,
   },
   contentContainer: {
@@ -49,13 +50,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary, // Black
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 3,
   },
@@ -65,17 +66,17 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: 22,
     fontWeight: '700',
-    color: theme.colors.accent,
+    color: theme.colors.accent, // White
   },
   name: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.accent,
+    color: theme.colors.accent, // White
     marginTop: 4,
   },
   designation: {
     fontSize: 14,
-    color: theme.colors.accent,
+    color: theme.colors.accent, // White
     opacity: 0.8,
     marginTop: 2,
   },
@@ -87,41 +88,41 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     borderWidth: 2,
-    borderColor: theme.colors.accent,
+    borderColor: theme.colors.accent, // White
   },
   employeeId: {
     fontSize: 12,
-    color: theme.colors.accent,
+    color: theme.colors.accent, // White
     opacity: 0.7,
     marginTop: 4,
   },
   statusCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.surface, // Light gray
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 3,
   },
   statusText: {
     fontSize: 14,
-    color: theme.colors.text,
+    color: theme.colors.text, // White
     marginBottom: 4,
   },
   imageContainer: {
     width: '100%',
     height: 300,
     borderRadius: 16,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: '#D3D3D3', // Lighter gray
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#B0B0B0', // Light gray
   },
   camera: {
     width: '100%',
@@ -134,18 +135,18 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     fontSize: 14,
-    color: theme.colors.text,
+    color: theme.colors.text, // White
     opacity: 0.5,
   },
   locationText: {
     fontSize: 14,
-    color: theme.colors.text,
+    color: theme.colors.text, // White
     textAlign: 'center',
     marginBottom: 12,
     fontWeight: '500',
   },
   errorText: {
-    color: theme.colors.error,
+    color: theme.colors.error, // Red
     fontSize: 14,
     textAlign: 'center',
     marginBottom: 12,
@@ -165,26 +166,40 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   punchInButton: {
-    backgroundColor: theme.colors.punchIn,
+    backgroundColor: theme.colors.punchIn, // Dark gray
   },
   punchOutButton: {
-    backgroundColor: theme.colors.punchOut,
+    backgroundColor: theme.colors.punchOut, // Medium gray
   },
   disabledButton: {
-    backgroundColor: theme.colors.disabled,
+    backgroundColor: theme.colors.disabled, // Light gray
     opacity: 0.5,
   },
   buttonLabel: {
     fontSize: 16,
     fontWeight: '600',
     paddingVertical: 6,
-    color: theme.colors.accent,
+    color: theme.colors.accent, // White
   },
   timerText: {
     fontSize: 16,
-    color: theme.colors.primary,
+    color: theme.colors.primary, // Black
     textAlign: 'center',
     marginBottom: 12,
+    fontWeight: '500',
+  },
+  // New loader styles
+  loaderContainer: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent black overlay
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000, // Ensure loader is on top
+  },
+  loaderText: {
+    color: theme.colors.accent, // White
+    fontSize: 16,
+    marginTop: 10,
     fontWeight: '500',
   },
 });
@@ -255,11 +270,11 @@ const PunchInScreen = () => {
           setUserData(response.data.data);
           await AsyncStorage.setItem('user_email', response.data.data.email);
         } else {
-          showToast('error', 'Error', 'Failed to fetch user data.');
+          showToast('error', 'Error', response.data.message || 'Failed to fetch user data.');
         }
       } catch (err) {
         console.warn('Fetch user data error:', err);
-        showToast('error', 'Error', 'Failed to fetch user data.');
+        showToast('error', 'Error', err.response?.data?.message || 'Failed to fetch user data.');
       }
     };
 
@@ -325,7 +340,7 @@ const PunchInScreen = () => {
       }
     } catch (err) {
       console.warn(err);
-      showToast('error', 'Error', 'Failed to fetch attendance status.');
+      showToast('error', 'Error', err.response?.data?.message || 'Failed to fetch attendance status.');
     }
   };
 
@@ -349,6 +364,7 @@ const PunchInScreen = () => {
   };
 
   const showToast = (type, text1, text2) => {
+    console.log('Showing toast:', { type, text1, text2 }); // Debug log
     Toast.show({
       type,
       text1,
@@ -356,7 +372,9 @@ const PunchInScreen = () => {
       position: 'top',
       visibilityTime: 4000,
       autoHide: true,
-      topOffset: 30,
+      topOffset: 50,
+      text1Style: { fontSize: 16, fontWeight: 'bold' },
+      text2Style: { fontSize: 14 },
     });
   };
 
@@ -458,8 +476,10 @@ const PunchInScreen = () => {
       console.log('Submitting attendance to URL:', api.defaults.baseURL + '/attendance/', 'with data:', data);
       const response = await api.post('/attendance/', data);
       console.log('Submit attendance response:', response.data);
+
+      // Handle API response
       if (response.data.status) {
-        showToast('success', 'Success', response.data.message);
+        showToast('success', 'Success', response.data.message || 'Attendance recorded successfully.');
         if (flag === 0) {
           setHasPunchedIn(true);
           const punchInDateTime = moment().valueOf();
@@ -477,6 +497,7 @@ const PunchInScreen = () => {
         setLocation(null);
         setLocationName('');
       } else {
+        console.log('API error response:', response.data);
         showToast('error', 'Error', response.data.message || 'Failed to submit attendance.');
       }
     } catch (err) {
@@ -485,7 +506,8 @@ const PunchInScreen = () => {
         status: err.response?.status,
         data: err.response?.data,
       });
-      showToast('error', 'Error', err.response?.data?.message || 'Failed to submit attendance.');
+      const errorMessage = err.response?.data?.message || 'Failed to submit attendance. Please try again.';
+      showToast('error', 'Error', errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -504,6 +526,7 @@ const PunchInScreen = () => {
       return;
     }
     const { location, address } = locationData;
+    console.log('Calling submitAttendance for punch in');
     await submitAttendance(0, base64, location, address);
   };
 
@@ -520,11 +543,17 @@ const PunchInScreen = () => {
       return;
     }
     const { location, address } = locationData;
+    console.log('Calling submitAttendance for punch out');
     await submitAttendance(1, base64, location, address);
   };
 
   if (hasCameraPermission === null || hasLocationPermission === null || userData === null) {
-    return <Text>Loading...</Text>;
+    return (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={styles.loaderText}>Loading...</Text>
+      </View>
+    );
   }
 
   if (!hasCameraPermission) {
@@ -536,68 +565,87 @@ const PunchInScreen = () => {
   }
 
   return (
-    <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-      <View style={styles.contentContainer}>
-        <View>
-          <View style={styles.header}>
-            <View style={styles.headerTextContainer}>
-              <Text style={styles.greeting}>{getGreeting()}</Text>
-              <Text style={styles.name}>{`${userData.first_name} ${userData.last_name}`}</Text>
-              <Text style={styles.designation}>{userData.employee.designation}</Text>
+    <>
+      <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+        <View style={styles.contentContainer}>
+          <View>
+            <View style={styles.header}>
+              <View style={styles.headerTextContainer}>
+                <Text style={styles.greeting}>
+                  {getGreeting()},<Text style={styles.name}> {userData.first_name} </Text>
+                </Text>
+              </View>
+              <View style={styles.profileContainer}>
+                <Image
+                  source={{ uri: userData.profile_image_url || 'https://via.placeholder.com/60' }}
+                  style={styles.logo}
+                />
+              </View>
             </View>
-            <View style={styles.profileContainer}>
-              <Image
-                source={{ uri: userData.profile_image_url || 'https://via.placeholder.com/60' }}
-                style={styles.logo}
-              />
-              <Text style={styles.employeeId}>{userData.employee_id}</Text>
+            <Text style={styles.timerText}>
+              {hasPunchedIn ? 'Punched In' : 'Punched Out'}: {formatTime(timer)}
+            </Text>
+            <View style={styles.imageContainer}>
+              {imageUri ? (
+                <Image source={{ uri: imageUri }} style={styles.image} />
+              ) : (
+                <Camera
+                  ref={camera}
+                  style={styles.camera}
+                  device={device}
+                  isActive={true}
+                  photo={true}
+                  onInitialized={onCameraInitialized}
+                  onError={onCameraError}
+                />
+              )}
+            </View>
+            {locationName && <Text style={styles.locationText}>{locationName}</Text>}
+            {error ? <HelperText type="error" style={styles.errorText}>{error}</HelperText> : null}
+          </View>
+          <View style={styles.buttonContainer}>
+            <View style={styles.buttonRow}>
+              <Button
+                mode="contained"
+                onPress={handlePunchIn}
+                style={[styles.button, styles.punchInButton]}
+                labelStyle={styles.buttonLabel}
+                loading={isLoading && !hasPunchedIn}
+                disabled={isLoading}
+              >
+                Punch In
+              </Button>
+              <Button
+                mode="contained"
+                onPress={handlePunchOut}
+                style={[styles.button, styles.punchOutButton]}
+                labelStyle={styles.buttonLabel}
+                loading={isLoading && hasPunchedIn}
+                disabled={isLoading}
+              >
+                Punch Out
+              </Button>
+              {/* Temporary test button for debugging toast */}
+       {/*        <Button
+                mode="contained"
+                onPress={() => showToast('success', 'Test', 'This is a test toast.')}
+                style={styles.button}
+                labelStyle={styles.buttonLabel}
+              >
+                Test Toast
+              </Button> */}
             </View>
           </View>
-          <Text style={styles.timerText}>
-            {hasPunchedIn ? 'Punched In' : 'Punched Out'}: {formatTime(timer)}
-          </Text>
-          <View style={styles.imageContainer}>
-            {imageUri ? (
-              <Image source={{ uri: imageUri }} style={styles.image} />
-            ) : (
-              <Camera
-                ref={camera}
-                style={styles.camera}
-                device={device}
-                isActive={true}
-                photo={true}
-                onInitialized={onCameraInitialized}
-                onError={onCameraError}
-              />
-            )}
-          </View>
-          {locationName && <Text style={styles.locationText}>{locationName}</Text>}
-          {error ? <HelperText type="error" style={styles.errorText}>{error}</HelperText> : null}
         </View>
-        <View style={styles.buttonContainer}>
-          <View style={styles.buttonRow}>
-            <Button
-              mode="contained"
-              onPress={handlePunchIn}
-              style={[styles.button, styles.punchInButton, hasPunchedIn && styles.disabledButton]}
-              labelStyle={styles.buttonLabel}
-              loading={isLoading && !hasPunchedIn}
-            >
-              Punch In
-            </Button>
-            <Button
-              mode="contained"
-              onPress={handlePunchOut}
-              style={[styles.button, styles.punchOutButton, !hasPunchedIn && styles.disabledButton]}
-              labelStyle={styles.buttonLabel}
-              loading={isLoading && hasPunchedIn}
-            >
-              Punch Out
-            </Button>
+        {isLoading && (
+          <View style={styles.loaderContainer}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <Text style={styles.loaderText}>Processing...</Text>
           </View>
-        </View>
-      </View>
-    </Animated.View>
+        )}
+      </Animated.View>
+      <Toast />
+    </>
   );
 };
 
